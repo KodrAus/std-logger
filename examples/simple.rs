@@ -1,10 +1,16 @@
 use log::error;
-use std_logger::request;
 
 fn main() {
     // Initialize the logger.
     std_logger::init();
 
+    log::trace!("we've just started");
+    log::debug!("debug message");
+    log::info!("Hello world");
+    log::warn!("Heads up");
+    error!("oops!");
+
+    /* TODO: use the key-value API of log once stable.
     // Fake the handling of a request.
     logger_middleware(Request {
         url: "/".to_owned(),
@@ -14,8 +20,10 @@ fn main() {
         url: "/not_found".to_owned(),
         method: "GET".to_owned(),
     });
+    */
 }
 
+/*
 // Our fake HTTP request.
 struct Request {
     url: String,
@@ -39,8 +47,13 @@ fn logger_middleware(request: Request) -> Response {
 
     // Log the request using the special request target. This will log it to
     // standard out rather then standard error.
-    request!("url = `{}`, method = `{}`, status_code = {}, body_size = {}",
-          url, method, response.status_code, response.body.len());
+    request!(
+        "url = `{}`, method = `{}`, status_code = {}, body_size = {}",
+        url,
+        method,
+        response.status_code,
+        response.body.len()
+    );
 
     if response.status_code == 404 {
         error!("oh no we've routed the user to an unknown page");
@@ -61,3 +74,4 @@ fn http_handler(request: Request) -> Response {
         },
     }
 }
+*/

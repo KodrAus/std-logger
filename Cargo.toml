@@ -25,11 +25,11 @@ log-panic = ["log-panics"]
 timestamp = ["chrono"]
 
 [dependencies]
+chrono     = { version = "0.4.19", optional = true, default-features = false, features = ["clock"] }
+itoa       = { version = "0.4.7", default-features = false }
 log        = { version = "0.4.11", default-features = false, features = ["std", "kv_unstable"] }
-# Required by timestamp feature.
-chrono     = { version = "0.4.15", optional = true, default-features = false, features = ["clock"] }
-# Required by log-panic feature.
 log-panics = { version = "2.0.0", optional = true, default-features = false, features = ["with-backtrace"] }
+ryu        = { version = "1.0.5", default-features = false }
 
 [dev-dependencies]
 criterion   = "0.2"
@@ -45,3 +45,7 @@ harness = false
 name = "standard_out"
 path = "benches/standard_out.rs"
 harness = false
+
+# TODO: replace with published crate.
+[patch.crates-io]
+log = { git = "https://github.com/rust-lang/log", rev = "dec098261819771ae1f22cd85f306ec71f23fd85", default-features = false, features = ["std", "kv_unstable"] }
