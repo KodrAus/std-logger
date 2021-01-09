@@ -209,39 +209,56 @@ struct KeyValueVisitor<'b>(&'b mut Vec<u8>);
 
 impl<'b, 'kvs> kv::Visitor<'kvs> for KeyValueVisitor<'b> {
     fn visit_pair(&mut self, key: kv::Key<'kvs>, value: kv::Value<'kvs>) -> Result<(), kv::Error> {
+        use sval::stream::{self, Stream};
+
+        impl<'b> Stream for KeyValueVisitor<'b> {
+            fn u64(&mut self, v: u64) -> stream::Result {
+                let mut itoa = itoa::Buffer::new();
+                self.0.extend_from_slice(itoa.format(v).as_bytes());
+                Ok(())
+            }
+
+            fn i64(&mut self, v: i64) -> stream::Result {
+                let mut itoa = itoa::Buffer::new();
+                self.0.extend_from_slice(itoa.format(v).as_bytes());
+                Ok(())
+            }
+
+            fn f64(&mut self, v: f64) -> stream::Result {
+                let mut ryu = ryu::Buffer::new();
+                self.0.extend_from_slice(ryu.format(v).as_bytes());
+                Ok(())
+            }
+
+            fn str(&mut self, v: &str) -> stream::Result {
+                self.0.push(b'\"');
+                self.0.extend_from_slice(v.as_bytes());
+                self.0.push(b'\"');
+                Ok(())
+            }
+
+            fn bool(&mut self, v: bool) -> stream::Result {
+                self.0.extend_from_slice(if v { b"true" } else { b"false" });
+                Ok(())
+            }
+        }
+
         self.0.push(b' ');
         self.0.extend_from_slice(key.as_str().as_bytes());
         self.0.push(b'=');
-        if let Some(value) = value.to_borrowed_str() {
-            self.0.push(b'\"');
-            self.0.extend_from_slice(value.as_bytes());
-            self.0.push(b'\"');
-        } else if let Some(value) = value.to_u64() {
-            let mut itoa = itoa::Buffer::new();
-            self.0.extend_from_slice(itoa.format(value).as_bytes());
-        } else if let Some(value) = value.to_i64() {
-            let mut itoa = itoa::Buffer::new();
-            self.0.extend_from_slice(itoa.format(value).as_bytes());
-        } else if let Some(value) = value.to_f64() {
-            let mut ryu = ryu::Buffer::new();
-            self.0.extend_from_slice(ryu.format(value).as_bytes());
-        } else if let Some(value) = value.to_bool() {
-            if value {
-                self.0.extend_from_slice(b"true");
-            } else {
-                self.0.extend_from_slice(b"false");
+
+        match sval::stream(&mut *self, &value) {
+            // If the value is unsupported then format it as a string
+            // using its `Display` implementation. This could happen if the input
+            // is a complex type, such as a `Vec<i32>`, or `BTreeMap<String, String>`.
+            Err(e) if e.is_unsupported() => {
+                self.0.push(b'"');
+                write!(self.0, "{}", value).unwrap_or_else(|_| unreachable!());
+                self.0.push(b'"');
+
+                Ok(())
             }
-        } else if let Some(value) = value.to_char() {
-            self.0.push(b'\"');
-            let mut buf = [0; 4];
-            self.0
-                .extend_from_slice(value.encode_utf8(&mut buf).as_bytes());
-            self.0.push(b'\"');
-        } else {
-            self.0.push(b'\"');
-            write!(self.0, "{}", value).unwrap_or_else(|_| unreachable!());
-            self.0.push(b'\"');
+            _ => Ok(())
         }
-        Ok(())
     }
 }
